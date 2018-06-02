@@ -55,13 +55,29 @@ std::vector<std::string> FindAllImgInFolder(std::string folder) {
 //Converts an image in CImg format to Eigen and returns it flattened (X,1)
 Eigen::MatrixXd convertImg2Eigen(CImg<unsigned char> img) {
 
-	Eigen::MatrixXd returnValue(img.height(), img.width());
+	int numPixels = img.height() * img.width();
+
+	Eigen::MatrixXd channelR(img.height(), img.width());
+	Eigen::MatrixXd channelG(img.height(), img.width());
+	Eigen::MatrixXd channelB(img.height(), img.width());
+	Eigen::MatrixXd returnValue(numPixels * 3,1);
 
 	//read into eigen mat
-	cimg_forXY(img, colIdx, rowIdx) { returnValue(rowIdx, colIdx) = img(colIdx, rowIdx); }
+	cimg_forXY(img, colIdx, rowIdx) { 
+		channelR(rowIdx, colIdx) = img(colIdx, rowIdx, 0, 0); //Red
+		channelG(rowIdx, colIdx) = img(colIdx, rowIdx, 0, 1); //Green	
+		channelB(rowIdx, colIdx) = img(colIdx, rowIdx, 0, 2); //Blue
+	}
 
-	//flatten
-	returnValue.resize(img.height() * img.width(), 1);
+	//flatten Channels
+	channelR.resize(numPixels, 1);
+	channelG.resize(numPixels, 1);
+	channelB.resize(numPixels, 1);
+
+	//Assign the blocks
+	returnValue.block(0, 0, numPixels, 1) = channelR; //From row 0 to col (img.height() * img.width()=numPixels) is the R channel
+	returnValue.block(numPixels, 0, numPixels, 1) = channelG; //From row numPixels to col 2*numPixels is the G channel
+	returnValue.block(2 * numPixels, 0, numPixels, 1) = channelB; //From row 2*numPixels to col 3*numPixels is the B channel
 
 	return returnValue;
 }
@@ -72,7 +88,7 @@ Eigen::MatrixXd PreProcessImg(std::string imgFilePath, int imgRescaleValue) {
 	//Load img cimg
 	CImg<unsigned char> image(imgFilePath.c_str());
 	//Resize img
-	image.resize(imgRescaleValue, imgRescaleValue, 1);
+	image.resize(imgRescaleValue, imgRescaleValue);
 	//Convert to Eigen + flatten
 	Eigen::MatrixXd flattenImg = convertImg2Eigen(image);
 
@@ -86,7 +102,7 @@ void LoadSet(std::string classExamplesFolder, std::string nonClassExamplesFolder
 	std::vector<std::string> trainImgFilesClass = FindAllImgInFolder(classExamplesFolder);
 	std::vector<std::string> trainImgFilesNotClass = FindAllImgInFolder(nonClassExamplesFolder);
 
-	outTrainingSamples = Eigen::MatrixXd(imgRescaleValue*imgRescaleValue, trainImgFilesClass.size() + trainImgFilesNotClass.size());
+	outTrainingSamples = Eigen::MatrixXd(imgRescaleValue*imgRescaleValue*3, trainImgFilesClass.size() + trainImgFilesNotClass.size());
 	outTrainingSamplesClasses = Eigen::MatrixXi(trainImgFilesClass.size() + trainImgFilesNotClass.size(), 1);
 
 	for (int imgIdx = 0; imgIdx < trainImgFilesClass.size(); imgIdx++) {
