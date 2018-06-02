@@ -16,7 +16,7 @@ Note: CImg (http://cimg.eu/) uses external libs to process the images. I install
 - Download images and organise dataset
 - Implement loading of images and creation of matrices on Eigen
 
-## Step 3)
+## Step 3) (TODO)
 - Define structure 
 - Implement Forward Propagation
 - Calculate Loss and Cost functions
