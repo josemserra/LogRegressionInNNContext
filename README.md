@@ -27,3 +27,4 @@ Note: CImg (http://cimg.eu/) uses external libs to process the images. I install
 
 ## Step 5) (TODO)
 - Implement Batch Gradient Descent
+- Visualise Gradient Descent Steps
