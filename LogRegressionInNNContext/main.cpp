@@ -103,7 +103,7 @@ void LoadSet(std::string classExamplesFolder, std::string nonClassExamplesFolder
 	std::vector<std::string> trainImgFilesNotClass = FindAllImgInFolder(nonClassExamplesFolder);
 
 	outTrainingSamples = Eigen::MatrixXd(imgRescaleValue*imgRescaleValue*3, trainImgFilesClass.size() + trainImgFilesNotClass.size());
-	outTrainingSamplesClasses = Eigen::MatrixXi(trainImgFilesClass.size() + trainImgFilesNotClass.size(), 1);
+	outTrainingSamplesClasses = Eigen::MatrixXi(1, trainImgFilesClass.size() + trainImgFilesNotClass.size());
 
 	for (int imgIdx = 0; imgIdx < trainImgFilesClass.size(); imgIdx++) {
 		//Preprocess Image
@@ -111,7 +111,7 @@ void LoadSet(std::string classExamplesFolder, std::string nonClassExamplesFolder
 		//Add to trainingSamples
 		outTrainingSamples.col(imgIdx) = flattenImg;
 		//Create labels
-		outTrainingSamplesClasses(imgIdx, 0) = 1;
+		outTrainingSamplesClasses(0, imgIdx) = 1;
 	}
 
 	for (int imgIdx = 0; imgIdx < trainImgFilesNotClass.size(); imgIdx++) {
@@ -120,7 +120,7 @@ void LoadSet(std::string classExamplesFolder, std::string nonClassExamplesFolder
 		//Add to trainingSamples
 		outTrainingSamples.col(trainImgFilesClass.size() + imgIdx) = flattenImg;
 		//Create labels
-		outTrainingSamplesClasses(trainImgFilesClass.size() + imgIdx, 0) = 0;
+		outTrainingSamplesClasses(0, trainImgFilesClass.size() + imgIdx) = 0;
 
 	}
 
