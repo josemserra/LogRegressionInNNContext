@@ -9,6 +9,12 @@
 
 using namespace cimg_library;
 
+
+//////////////////////////////////////////////////////
+// - Step 1 -
+// Load files and preprocess the data
+//////////////////////////////////////////////////////
+
 // Returns a vector with a path for all the image files in the specified folder
 std::vector<std::string> FindAllImgInFolder(std::string folder) {
 
@@ -60,10 +66,10 @@ Eigen::MatrixXd convertImg2Eigen(CImg<unsigned char> img) {
 	Eigen::MatrixXd channelR(img.height(), img.width());
 	Eigen::MatrixXd channelG(img.height(), img.width());
 	Eigen::MatrixXd channelB(img.height(), img.width());
-	Eigen::MatrixXd returnValue(numPixels * 3,1);
+	Eigen::MatrixXd returnValue(numPixels * 3, 1);
 
 	//read into eigen mat
-	cimg_forXY(img, colIdx, rowIdx) { 
+	cimg_forXY(img, colIdx, rowIdx) {
 		channelR(rowIdx, colIdx) = img(colIdx, rowIdx, 0, 0); //Red
 		channelG(rowIdx, colIdx) = img(colIdx, rowIdx, 0, 1); //Green	
 		channelB(rowIdx, colIdx) = img(colIdx, rowIdx, 0, 2); //Blue
@@ -91,7 +97,8 @@ Eigen::MatrixXd PreProcessImg(std::string imgFilePath, int imgRescaleValue) {
 	image.resize(imgRescaleValue, imgRescaleValue);
 	//Convert to Eigen + flatten
 	Eigen::MatrixXd flattenImg = convertImg2Eigen(image);
-
+	//Normalise. This could be the average image of the full DB, but it works just fine with 255
+	flattenImg *= 1.0 / 255;
 	return flattenImg;
 }
 
@@ -102,7 +109,7 @@ void LoadSet(std::string classExamplesFolder, std::string nonClassExamplesFolder
 	std::vector<std::string> trainImgFilesClass = FindAllImgInFolder(classExamplesFolder);
 	std::vector<std::string> trainImgFilesNotClass = FindAllImgInFolder(nonClassExamplesFolder);
 
-	outTrainingSamples = Eigen::MatrixXd(imgRescaleValue*imgRescaleValue*3, trainImgFilesClass.size() + trainImgFilesNotClass.size());
+	outTrainingSamples = Eigen::MatrixXd(imgRescaleValue*imgRescaleValue * 3, trainImgFilesClass.size() + trainImgFilesNotClass.size());
 	outTrainingSamplesClasses = Eigen::MatrixXi(1, trainImgFilesClass.size() + trainImgFilesNotClass.size());
 
 	for (int imgIdx = 0; imgIdx < trainImgFilesClass.size(); imgIdx++) {
@@ -126,8 +133,53 @@ void LoadSet(std::string classExamplesFolder, std::string nonClassExamplesFolder
 
 }
 
+//////////////////////////////////////////////////////
+// - Step 2 -
+// Neuron Initialization, Forward Prop, Sigmoid Activation, Loss and Cost Functions
+//////////////////////////////////////////////////////
 
 
+//Initialize all the weights with random values (small) and b with 0
+void initializeNeuron(int inputSize, Eigen::MatrixXd &weights, Eigen::VectorXd &b) {
+
+	srand(1); // Just to force random to always generate the same randoms (good for tests purposes)
+
+	weights = Eigen::MatrixXd::Random(inputSize*inputSize * 3, 1)*0.01; //keep values small
+	b = Eigen::VectorXd::Zero(1);
+}
+
+//Activation function. Applies the sigmoid function element wise on a matrix. Changes the input
+void sigmoid(Eigen::MatrixXd &z) {
+	z = (1.0 + (-1 * z.array()).exp()).inverse().matrix();
+}
+
+//Forward Propagation step for single neuron
+Eigen::MatrixXd forwardPropagation(Eigen::MatrixXd weights, Eigen::VectorXd b, Eigen::MatrixXd X) {
+
+	Eigen::MatrixXd A = weights.transpose()*X;
+	A.colwise() += b;
+
+	sigmoid(A);
+
+	return A;
+}
+
+//Cross Entropy Loss Function. A are the predictions, Y are the training labels 
+Eigen::MatrixXd crossEntropy(Eigen::MatrixXd &A, Eigen::MatrixXd &Y) {
+	double E = 0.00000000001;
+
+	Eigen::MatrixXd entropy = Y.array()*((E + A.array()).log()) + (1 - Y.array())*((E + 1 - A.array()).log());
+	return entropy;
+}
+
+//Calculates the cost for all the samples in A
+double calculateCost(Eigen::MatrixXd A, Eigen::MatrixXd Y) {
+
+	int m = A.cols();
+	Eigen::MatrixXd entropy = crossEntropy(A, Y);
+	double cost = (1.0 / m)*(entropy.sum());
+	return cost;
+}
 
 
 int main() {
@@ -152,8 +204,13 @@ int main() {
 	//Class 2 - Not Dogs
 	LoadSet(devFolderDogs, devFolderNotDogs, imgRescaleValue, DevSamples, DevSamplesClasses);
 
+	Eigen::MatrixXd weights;
+	Eigen::VectorXd b;
+	initializeNeuron(imgRescaleValue, weights, b);
 
+	Eigen::MatrixXd preds = forwardPropagation(weights, b, TrainingSamples);
 
+	double cost = calculateCost(preds, TrainingSamplesClasses.cast <double>());
 
 
 
