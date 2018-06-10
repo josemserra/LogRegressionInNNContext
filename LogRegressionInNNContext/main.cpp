@@ -138,7 +138,6 @@ void LoadSet(std::string classExamplesFolder, std::string nonClassExamplesFolder
 // Neuron Initialization, Forward Prop, Sigmoid Activation, Loss and Cost Functions
 //////////////////////////////////////////////////////
 
-
 //Initialize all the weights with random values (small) and b with 0
 void initializeNeuron(int inputSize, Eigen::MatrixXd &weights, Eigen::VectorXd &b) {
 
@@ -180,6 +179,25 @@ double calculateCost(Eigen::MatrixXd A, Eigen::MatrixXd Y) {
 	return cost;
 }
 
+//////////////////////////////////////////////////////
+// - Step 3 -
+// Backward Propagation
+//////////////////////////////////////////////////////
+
+//Calculates dJ/dW (dw) and dJ/db (db), which describe how much the weights should change to approximate the predictions of the true classes
+void backwardPropagation(Eigen::MatrixXd X, Eigen::MatrixXd A, Eigen::MatrixXd Y, Eigen::MatrixXd &dw, Eigen::MatrixXd &db) {
+	
+	Eigen::MatrixXd dz = A - Y;
+	int m = dz.cols();
+
+	Eigen::VectorXd dzV(Eigen::Map<Eigen::VectorXd>(dz.data(), m)); //otherwise I can't broadcast in the line below
+	
+	dw = X.array().rowwise() * dzV.transpose().array();
+	dw = (1.0 / m)*(dw.rowwise().sum()).array();
+
+	db = (1.0 / m)*(dz.rowwise().sum()).array();
+}
+
 
 int main() {
 
@@ -201,17 +219,26 @@ int main() {
 	Eigen::MatrixXi DevSamplesClasses;
 	//Class 1 - Dogs
 	//Class 2 - Not Dogs
-	LoadSet(devFolderDogs, devFolderNotDogs, imgRescaleValue, DevSamples, DevSamplesClasses);
+	//LoadSet(devFolderDogs, devFolderNotDogs, imgRescaleValue, DevSamples, DevSamplesClasses);
 
+	//Initialisation
 	Eigen::MatrixXd weights; 
 	Eigen::VectorXd b;
 	initializeNeuron(imgRescaleValue, weights, b);
 
+	//Single Fwd Prop Step
 	Eigen::MatrixXd preds = forwardPropagation(weights, b, TrainingSamples);
 
+	//Calc cost after Fwd Prop
 	double cost = calculateCost(preds, TrainingSamplesClasses.cast <double>());
 
+	//Single Back Prop Step
+	Eigen::MatrixXd dw;
+	Eigen::MatrixXd db;
+	backwardPropagation(TrainingSamples, preds, TrainingSamplesClasses.cast <double>(), dw, db);
+
 	
+
 
 	//Eigen Hello World
 	//MatrixXd m(2, 2);

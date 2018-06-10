@@ -22,9 +22,11 @@ Note: CImg (http://cimg.eu/) uses external libs to process the images. I install
 - Sigmoid Activation
 - Loss and Cost Functions
 	
-## Step 4) (TODO)
+## Step 4)
 - Implement Backward Propagation
 
 ## Step 5) (TODO)
-- Implement Batch Gradient Descent
+- Implement (Batch) Gradient Descent
+
+## Step 6) (TODO)
 - Visualise Gradient Descent Steps
