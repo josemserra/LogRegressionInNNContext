@@ -66,10 +66,10 @@ Eigen::MatrixXd convertImg2Eigen(CImg<unsigned char> img) {
 	Eigen::MatrixXd channelR(img.height(), img.width());
 	Eigen::MatrixXd channelG(img.height(), img.width());
 	Eigen::MatrixXd channelB(img.height(), img.width());
-	Eigen::MatrixXd returnValue(numPixels * 3, 1);
+	Eigen::MatrixXd returnValue(numPixels * 3,1);
 
 	//read into eigen mat
-	cimg_forXY(img, colIdx, rowIdx) {
+	cimg_forXY(img, colIdx, rowIdx) { 
 		channelR(rowIdx, colIdx) = img(colIdx, rowIdx, 0, 0); //Red
 		channelG(rowIdx, colIdx) = img(colIdx, rowIdx, 0, 1); //Green	
 		channelB(rowIdx, colIdx) = img(colIdx, rowIdx, 0, 2); //Blue
@@ -109,7 +109,7 @@ void LoadSet(std::string classExamplesFolder, std::string nonClassExamplesFolder
 	std::vector<std::string> trainImgFilesClass = FindAllImgInFolder(classExamplesFolder);
 	std::vector<std::string> trainImgFilesNotClass = FindAllImgInFolder(nonClassExamplesFolder);
 
-	outTrainingSamples = Eigen::MatrixXd(imgRescaleValue*imgRescaleValue * 3, trainImgFilesClass.size() + trainImgFilesNotClass.size());
+	outTrainingSamples = Eigen::MatrixXd(imgRescaleValue*imgRescaleValue*3, trainImgFilesClass.size() + trainImgFilesNotClass.size());
 	outTrainingSamplesClasses = Eigen::MatrixXi(1, trainImgFilesClass.size() + trainImgFilesNotClass.size());
 
 	for (int imgIdx = 0; imgIdx < trainImgFilesClass.size(); imgIdx++) {
@@ -144,7 +144,7 @@ void initializeNeuron(int inputSize, Eigen::MatrixXd &weights, Eigen::VectorXd &
 
 	srand(1); // Just to force random to always generate the same randoms (good for tests purposes)
 
-	weights = Eigen::MatrixXd::Random(inputSize*inputSize * 3, 1)*0.01; //keep values small
+	weights = Eigen::MatrixXd::Random(inputSize*inputSize* 3, 1)*0.01; //keep values small
 	b = Eigen::VectorXd::Zero(1);
 }
 
@@ -166,18 +166,17 @@ Eigen::MatrixXd forwardPropagation(Eigen::MatrixXd weights, Eigen::VectorXd b, E
 
 //Cross Entropy Loss Function. A are the predictions, Y are the training labels 
 Eigen::MatrixXd crossEntropy(Eigen::MatrixXd &A, Eigen::MatrixXd &Y) {
-	double E = 0.00000000001;
-
-	Eigen::MatrixXd entropy = Y.array()*((E + A.array()).log()) + (1 - Y.array())*((E + 1 - A.array()).log());
+	Eigen::MatrixXd entropy = Y.array()*((A.array()).log()) + (1 - Y.array())*((1 - A.array()).log());
 	return entropy;
 }
 
 //Calculates the cost for all the samples in A
 double calculateCost(Eigen::MatrixXd A, Eigen::MatrixXd Y) {
+	double E = 0.00000001;
 
 	int m = A.cols();
 	Eigen::MatrixXd entropy = crossEntropy(A, Y);
-	double cost = (1.0 / m)*(entropy.sum());
+	double cost = (1.0 / m)*(entropy.sum() + E);
 	return cost;
 }
 
@@ -204,7 +203,7 @@ int main() {
 	//Class 2 - Not Dogs
 	LoadSet(devFolderDogs, devFolderNotDogs, imgRescaleValue, DevSamples, DevSamplesClasses);
 
-	Eigen::MatrixXd weights;
+	Eigen::MatrixXd weights; 
 	Eigen::VectorXd b;
 	initializeNeuron(imgRescaleValue, weights, b);
 
@@ -212,7 +211,7 @@ int main() {
 
 	double cost = calculateCost(preds, TrainingSamplesClasses.cast <double>());
 
-
+	
 
 	//Eigen Hello World
 	//MatrixXd m(2, 2);
