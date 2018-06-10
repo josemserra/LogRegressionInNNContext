@@ -16,8 +16,15 @@ Note: CImg (http://cimg.eu/) uses external libs to process the images. I install
 - Download images and organise dataset
 - Implement loading of images and creation of matrices on Eigen
 
-## Step 3) (TODO)
-- Define structure 
-- Implement Forward Propagation
-- Calculate Loss and Cost functions
+## Step 3) 
+- Neuron Initialization
+- Forward Propagation
+- Sigmoid Activation
+- Loss and Cost Functions
 	
+## Step 4) (TODO)
+- Implement Backward Propagation
+
+## Step 5) (TODO)
+- Implement Batch Gradient Descent
+- Visualise Gradient Descent Steps
