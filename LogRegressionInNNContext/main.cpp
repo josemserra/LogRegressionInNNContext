@@ -4,6 +4,8 @@
 #include <vector>
 #include <string>
 
+#include <time.h>
+
 #include "CImg.h"
 #include <Eigen/Dense>
 
@@ -66,10 +68,10 @@ Eigen::MatrixXd convertImg2Eigen(CImg<unsigned char> img) {
 	Eigen::MatrixXd channelR(img.height(), img.width());
 	Eigen::MatrixXd channelG(img.height(), img.width());
 	Eigen::MatrixXd channelB(img.height(), img.width());
-	Eigen::MatrixXd returnValue(numPixels * 3,1);
+	Eigen::MatrixXd returnValue(numPixels * 3, 1);
 
 	//read into eigen mat
-	cimg_forXY(img, colIdx, rowIdx) { 
+	cimg_forXY(img, colIdx, rowIdx) {
 		channelR(rowIdx, colIdx) = img(colIdx, rowIdx, 0, 0); //Red
 		channelG(rowIdx, colIdx) = img(colIdx, rowIdx, 0, 1); //Green	
 		channelB(rowIdx, colIdx) = img(colIdx, rowIdx, 0, 2); //Blue
@@ -109,7 +111,7 @@ void LoadSet(std::string classExamplesFolder, std::string nonClassExamplesFolder
 	std::vector<std::string> trainImgFilesClass = FindAllImgInFolder(classExamplesFolder);
 	std::vector<std::string> trainImgFilesNotClass = FindAllImgInFolder(nonClassExamplesFolder);
 
-	outTrainingSamples = Eigen::MatrixXd(imgRescaleValue*imgRescaleValue*3, trainImgFilesClass.size() + trainImgFilesNotClass.size());
+	outTrainingSamples = Eigen::MatrixXd(imgRescaleValue*imgRescaleValue * 3, trainImgFilesClass.size() + trainImgFilesNotClass.size());
 	outTrainingSamplesClasses = Eigen::MatrixXi(1, trainImgFilesClass.size() + trainImgFilesNotClass.size());
 
 	for (int imgIdx = 0; imgIdx < trainImgFilesClass.size(); imgIdx++) {
@@ -139,42 +141,42 @@ void LoadSet(std::string classExamplesFolder, std::string nonClassExamplesFolder
 //////////////////////////////////////////////////////
 
 //Initialize all the weights with random values (small) and b with 0
-void initializeNeuron(int inputSize, Eigen::MatrixXd &weights, Eigen::VectorXd &b) {
+void InitializeNeuron(int inputSize, Eigen::MatrixXd &weights, Eigen::VectorXd &b) {
 
 	srand(1); // Just to force random to always generate the same randoms (good for tests purposes)
 
-	weights = Eigen::MatrixXd::Random(inputSize*inputSize* 3, 1)*0.01; //keep values small
+	weights = Eigen::MatrixXd::Random(inputSize*inputSize * 3, 1)*0.01; //keep values small
 	b = Eigen::VectorXd::Zero(1);
 }
 
 //Activation function. Applies the sigmoid function element wise on a matrix. Changes the input
-void sigmoid(Eigen::MatrixXd &z) {
+void Sigmoid(Eigen::MatrixXd &z) {
 	z = (1.0 + (-1 * z.array()).exp()).inverse().matrix();
 }
 
 //Forward Propagation step for single neuron
-Eigen::MatrixXd forwardPropagation(Eigen::MatrixXd weights, Eigen::VectorXd b, Eigen::MatrixXd X) {
+Eigen::MatrixXd ForwardPropagation(Eigen::MatrixXd weights, Eigen::VectorXd b, Eigen::MatrixXd X) {
 
 	Eigen::MatrixXd A = weights.transpose()*X;
 	A.colwise() += b;
 
-	sigmoid(A);
+	Sigmoid(A);
 
 	return A;
 }
 
 //Cross Entropy Loss Function. A are the predictions, Y are the training labels 
-Eigen::MatrixXd crossEntropy(Eigen::MatrixXd &A, Eigen::MatrixXd &Y) {
-	Eigen::MatrixXd entropy = Y.array()*((A.array()).log()) + (1 - Y.array())*((1 - A.array()).log());
+Eigen::MatrixXd CrossEntropy(Eigen::MatrixXd &A, Eigen::MatrixXd &Y) {
+	Eigen::MatrixXd entropy = -Y.array()*((A.array()).log()) - (1 - Y.array())*((1 - A.array()).log());
 	return entropy;
 }
 
 //Calculates the cost for all the samples in A
-double calculateCost(Eigen::MatrixXd A, Eigen::MatrixXd Y) {
+double CalculateCost(Eigen::MatrixXd A, Eigen::MatrixXd Y) {
 	double E = 0.00000001;
 
 	int m = A.cols();
-	Eigen::MatrixXd entropy = crossEntropy(A, Y);
+	Eigen::MatrixXd entropy = CrossEntropy(A, Y);
 	double cost = (1.0 / m)*(entropy.sum() + E);
 	return cost;
 }
@@ -185,17 +187,106 @@ double calculateCost(Eigen::MatrixXd A, Eigen::MatrixXd Y) {
 //////////////////////////////////////////////////////
 
 //Calculates dJ/dW (dw) and dJ/db (db), which describe how much the weights should change to approximate the predictions of the true classes
-void backwardPropagation(Eigen::MatrixXd X, Eigen::MatrixXd A, Eigen::MatrixXd Y, Eigen::MatrixXd &dw, Eigen::MatrixXd &db) {
-	
+void BackwardPropagation(Eigen::MatrixXd X, Eigen::MatrixXd A, Eigen::MatrixXd Y, Eigen::MatrixXd &dw, Eigen::MatrixXd &db) {
+
 	Eigen::MatrixXd dz = A - Y;
 	int m = dz.cols();
 
 	Eigen::VectorXd dzV(Eigen::Map<Eigen::VectorXd>(dz.data(), m)); //otherwise I can't broadcast in the line below
-	
-	dw = X.array().rowwise() * dzV.transpose().array();
-	dw = (1.0 / m)*(dw.rowwise().sum()).array();
 
-	db = (1.0 / m)*(dz.rowwise().sum()).array();
+	dw = X.array().rowwise() * dzV.transpose().array();
+	Eigen::MatrixXd dTemp = (1.0 / m)*(dw.rowwise().sum()); // Eigen behaves strangly if I don't store the results in a temp variable
+	dw = dTemp;
+
+	dTemp = (1.0 / m)*(dz.rowwise().sum());
+	db = dTemp;
+}
+
+//////////////////////////////////////////////////////
+// - Step 4 -
+// (Batch) Gradient Descent
+//////////////////////////////////////////////////////
+
+void ShuffleMatrixCols(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::MatrixXd &X_perm, Eigen::MatrixXi &X_Classes_Perm) {
+
+	Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> perm(X.cols());
+	perm.setIdentity();
+	std::random_shuffle(perm.indices().data(), perm.indices().data() + perm.indices().size());
+	X_perm = X * perm; // permute columns
+	X_Classes_Perm = X_Classes * perm; // permute columns
+	//Eigen::MatrixXi x2_perm2 = perm * x123; // permute rows
+	
+}
+
+void GradientDescent(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::MatrixXd &weights, Eigen::VectorXd &b, int numEpochs = 25, double learningRate = 0.001) {
+
+	//Gradient descent
+	for (int itIdx = 0; itIdx < numEpochs; itIdx++) {
+
+		Eigen::MatrixXd preds = ForwardPropagation(weights, b, X);
+
+		double cost = CalculateCost(preds, X_Classes.cast <double>());
+
+		//Single Back Prop Step
+		Eigen::MatrixXd dw;
+		Eigen::MatrixXd db;
+		BackwardPropagation(X, preds, X_Classes.cast <double>(), dw, db);
+
+		//Update weights
+		weights = weights - learningRate*dw;
+		b = b - learningRate*db;
+	}
+}
+
+void BatchGradientDescent(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::MatrixXd &weights, Eigen::VectorXd &b, int batchSize = 32, int numEpochs = 25, double learningRate = 0.001) {
+	
+	int numTrainingSamples = X.cols();
+	for (int itIdx = 0; itIdx < numEpochs; itIdx++) {
+
+		//Random shuffle of samples
+		Eigen::MatrixXd X_perm;
+		Eigen::MatrixXi X_Classes_Perm;
+		ShuffleMatrixCols(X, X_Classes, X_perm, X_Classes_Perm);
+
+		//Process all batches aside from last one, which might have a different size than the others
+		int processedBatches = 0;
+		while ((processedBatches + batchSize) < numTrainingSamples) {
+
+			Eigen::MatrixXd batch = X.block(0, processedBatches, X.rows(), numTrainingSamples - processedBatches);
+			Eigen::MatrixXi batchClasses = X_Classes.block(0, processedBatches, 1, numTrainingSamples - processedBatches);
+
+			Eigen::MatrixXd preds = ForwardPropagation(weights, b, batch);
+
+			double cost = CalculateCost(preds, batchClasses.cast <double>());
+			
+			//Single Back Prop Step
+			Eigen::MatrixXd dw;
+			Eigen::MatrixXd db;
+			BackwardPropagation(batch, preds, batchClasses.cast <double>(), dw, db);
+
+			weights = weights - learningRate*dw;
+			b = b - learningRate*db;
+
+			processedBatches += batchSize;
+		}
+
+		//Process the last batch
+		Eigen::MatrixXd batch = X.block(0, processedBatches, X.rows(), numTrainingSamples - processedBatches);
+		Eigen::MatrixXi batchClasses = X_Classes.block(0, processedBatches, 1, numTrainingSamples - processedBatches);
+
+		Eigen::MatrixXd preds = ForwardPropagation(weights, b, batch);
+
+		double cost = CalculateCost(preds, batchClasses.cast <double>());
+
+		Eigen::MatrixXd dw;
+		Eigen::MatrixXd db;
+		BackwardPropagation(batch, preds, batchClasses.cast <double>(), dw, db);
+
+		//Update weights
+		weights = weights - learningRate*dw;
+		b = b - learningRate*db;
+
+	}
 }
 
 
@@ -209,6 +300,7 @@ int main() {
 
 	int imgRescaleValue = 64;
 
+	//Initialisation Load Dataset -------------------
 	Eigen::MatrixXd TrainingSamples;
 	Eigen::MatrixXi TrainingSamplesClasses;
 	//Class 1 - Dogs
@@ -219,25 +311,46 @@ int main() {
 	Eigen::MatrixXi DevSamplesClasses;
 	//Class 1 - Dogs
 	//Class 2 - Not Dogs
-	//LoadSet(devFolderDogs, devFolderNotDogs, imgRescaleValue, DevSamples, DevSamplesClasses);
+	LoadSet(devFolderDogs, devFolderNotDogs, imgRescaleValue, DevSamples, DevSamplesClasses);
 
-	//Initialisation
-	Eigen::MatrixXd weights; 
+	//Initialisation --------------------------------
+	Eigen::MatrixXd weights;
 	Eigen::VectorXd b;
-	initializeNeuron(imgRescaleValue, weights, b);
+	InitializeNeuron(imgRescaleValue, weights, b);
 
-	//Single Fwd Prop Step
-	Eigen::MatrixXd preds = forwardPropagation(weights, b, TrainingSamples);
+	//Single Fwd Prop Step --------------------------
+	Eigen::MatrixXd preds = ForwardPropagation(weights, b, TrainingSamples);
 
-	//Calc cost after Fwd Prop
-	double cost = calculateCost(preds, TrainingSamplesClasses.cast <double>());
+	//Calc cost after Fwd Prop ----------------------
+	double cost = CalculateCost(preds, TrainingSamplesClasses.cast <double>());
 
-	//Single Back Prop Step
+	//Single Back Prop Step -------------------------
 	Eigen::MatrixXd dw;
 	Eigen::MatrixXd db;
-	backwardPropagation(TrainingSamples, preds, TrainingSamplesClasses.cast <double>(), dw, db);
+	BackwardPropagation(TrainingSamples, preds, TrainingSamplesClasses.cast <double>(), dw, db);
 
-	
+	//Train with Gradient Descent -------------------
+	InitializeNeuron(imgRescaleValue, weights, b);
+	GradientDescent(TrainingSamples, TrainingSamplesClasses, weights, b, 10, 0.001);	
+
+	preds = ForwardPropagation(weights, b, TrainingSamples);
+	cost = CalculateCost(preds, TrainingSamplesClasses.cast <double>());
+	std::cout << "Final Training Cost: " << cost << "\n";
+	std::cout << "-------------------------------------------------------\n";
+
+	//Train with Batch Gradient Descent -------------
+	InitializeNeuron(imgRescaleValue, weights, b);
+	BatchGradientDescent(TrainingSamples, TrainingSamplesClasses, weights, b, 32, 10, 0.001);
+
+	preds = ForwardPropagation(weights, b, TrainingSamples);
+	cost = CalculateCost(preds, TrainingSamplesClasses.cast <double>());
+	std::cout << "Final Training Cost: " << cost << "\n";
+	std::cout << "-------------------------------------------------------\n";
+
+
+
+
+
 
 
 	//Eigen Hello World
