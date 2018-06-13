@@ -25,8 +25,12 @@ Note: CImg (http://cimg.eu/) uses external libs to process the images. I install
 ## Step 4)
 - Implement Backward Propagation
 
-## Step 5) (TODO)
+## Step 5)
+- Implement Shuffle of Samples
 - Implement (Batch) Gradient Descent
 
 ## Step 6) (TODO)
 - Visualise Gradient Descent Steps
+
+## Step 7) (TODO)
+- Get Accuracy from Dev Set
