@@ -29,8 +29,8 @@ Note: CImg (http://cimg.eu/) uses external libs to process the images. I install
 - Implement Shuffle of Samples
 - Implement (Batch) Gradient Descent
 
-## Step 6) (TODO)
-- Visualise Gradient Descent Steps
+## Step 6) 
+- Visualise Gradient Descent Steps using CImg
 
 ## Step 7) (TODO)
 - Get Accuracy from Dev Set
