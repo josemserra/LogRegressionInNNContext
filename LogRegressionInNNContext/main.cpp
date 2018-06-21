@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include <algorithm> 
 
 #include <time.h>
 
@@ -11,6 +12,9 @@
 
 using namespace cimg_library;
 
+void drawPlot(CImgDisplay& disp, std::vector<double> x, std::vector<double> y,
+	double minX, double maxX, double minY, double maxY,
+	std::string xLabel, std::string yLabel);
 
 //////////////////////////////////////////////////////
 // - Step 1 -
@@ -205,6 +209,8 @@ void BackwardPropagation(Eigen::MatrixXd X, Eigen::MatrixXd A, Eigen::MatrixXd Y
 //////////////////////////////////////////////////////
 // - Step 4 -
 // (Batch) Gradient Descent
+// - Step 5 -
+// Added the code on the (Batch) Gradient Descent methods to update the plot
 //////////////////////////////////////////////////////
 
 void ShuffleMatrixCols(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::MatrixXd &X_perm, Eigen::MatrixXi &X_Classes_Perm) {
@@ -218,7 +224,14 @@ void ShuffleMatrixCols(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::Matr
 	
 }
 
-void GradientDescent(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::MatrixXd &weights, Eigen::VectorXd &b, int numEpochs = 25, double learningRate = 0.001) {
+void GradientDescent(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::MatrixXd &weights, Eigen::VectorXd &b, int numEpochs = 25, double learningRate = 0.001, bool plotCost=false) {
+
+	CImgDisplay main_disp;
+	std::vector<double> x;
+	std::vector<double> y;
+	if (plotCost)
+		main_disp = CImgDisplay(500, 400, "Cost Plot"); // display it
+
 
 	//Gradient descent
 	for (int itIdx = 0; itIdx < numEpochs; itIdx++) {
@@ -226,6 +239,14 @@ void GradientDescent(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::Matrix
 		Eigen::MatrixXd preds = ForwardPropagation(weights, b, X);
 
 		double cost = CalculateCost(preds, X_Classes.cast <double>());
+		
+		if (plotCost) {
+			x.push_back(itIdx);
+			y.push_back(cost);
+			drawPlot(main_disp, x, y, 
+				0.0f, 15.0f, 0.0f, 1.0f,
+				"Iterations", "Cost");
+		}
 
 		//Single Back Prop Step
 		Eigen::MatrixXd dw;
@@ -236,11 +257,21 @@ void GradientDescent(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::Matrix
 		weights = weights - learningRate*dw;
 		b = b - learningRate*db;
 	}
+
+	main_disp.wait(); // Wait for key any key input
 }
 
-void BatchGradientDescent(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::MatrixXd &weights, Eigen::VectorXd &b, int batchSize = 32, int numEpochs = 25, double learningRate = 0.001) {
+void BatchGradientDescent(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::MatrixXd &weights, Eigen::VectorXd &b, int batchSize = 32, int numEpochs = 25, double learningRate = 0.001, bool plotCost = false) {
 	
+	CImgDisplay main_disp;
+	std::vector<double> x;
+	std::vector<double> y;
+	if (plotCost)
+		main_disp = CImgDisplay(500, 400, "Cost Plot"); // display it
+
+
 	int numTrainingSamples = X.cols();
+	int counterPlot = 0;
 	for (int itIdx = 0; itIdx < numEpochs; itIdx++) {
 
 		//Random shuffle of samples
@@ -259,6 +290,16 @@ void BatchGradientDescent(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::M
 
 			double cost = CalculateCost(preds, batchClasses.cast <double>());
 			
+			if (plotCost) {
+				x.push_back(counterPlot);
+				y.push_back(cost);
+				drawPlot(main_disp, x, y,
+					0.0f, 15.0f, 0.0f, 1.0f,
+					"Iterations", "Cost");
+				counterPlot++;
+			}
+
+
 			//Single Back Prop Step
 			Eigen::MatrixXd dw;
 			Eigen::MatrixXd db;
@@ -278,6 +319,16 @@ void BatchGradientDescent(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::M
 
 		double cost = CalculateCost(preds, batchClasses.cast <double>());
 
+		if (plotCost) {
+			x.push_back(counterPlot);
+			y.push_back(cost);
+			drawPlot(main_disp, x, y,
+				0.0f, 15.0f, 0.0f, 1.0f,
+				"Iterations", "Cost");
+			counterPlot++;
+		}
+
+
 		Eigen::MatrixXd dw;
 		Eigen::MatrixXd db;
 		BackwardPropagation(batch, preds, batchClasses.cast <double>(), dw, db);
@@ -287,7 +338,92 @@ void BatchGradientDescent(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::M
 		b = b - learningRate*db;
 
 	}
+
+	main_disp.wait(); // Wait for key any key input
 }
+
+//////////////////////////////////////////////////////
+// - Step 5 -
+// Visualise Cost after each Gradient Descent Step
+//////////////////////////////////////////////////////
+void drawPlot(CImgDisplay& disp, std::vector<double> x, std::vector<double> y, 
+	double minX = 0.0f, double maxX = 15.0f, double minY = 0.0f, double maxY = 1.0f,
+	std::string xLabel = "xAxis", std::string yLabel = "yAxis"){
+	
+	const unsigned char lineColour[] = { 0,0,0 };// i.e. black
+	int bgFillColour = 255;// i.e. white
+	
+	if (x.size() != y.size()) {
+		std::cout << "Both vectors need to have the same size. \n Will not draw anything \n";
+	}
+
+	int dispWidth = disp.width();
+	int dispHeight = disp.height();
+
+	CImg<unsigned char>  visu(dispWidth, dispHeight, 1, 3, 1);
+	
+	//Plot Drawing limits, i.e. what is drawn inside the axis lines
+	int xMinAxis = 50;
+	int yMinAxis = 10;
+	int xMaxAxis = dispWidth - 10;
+	int yMaxAxis = dispHeight - 50;
+
+	//Validate the max. if any of the values in x or y are larger or smaller than the the max or min (respectively), increase the max and decrease the min (respectively).
+	auto minX_it = std::min_element(std::begin(x), std::end(x));
+	auto maxX_it = std::max_element(std::begin(x), std::end(x));
+	auto minY_it = std::min_element(std::begin(y), std::end(y));
+	auto maxY_it = std::max_element(std::begin(y), std::end(y));
+
+	if (*minX_it < minX)
+		minX = *minX_it - 1;
+	if (*maxX_it > maxX) {
+		maxX = *maxX_it + 1;
+	}
+	if (*minY_it < minY)
+		minY = *minY_it - 1;
+	if (*maxY_it > maxY)
+		maxY = *maxY_it + 1;
+
+
+	visu.fill(bgFillColour);
+
+	//Draw Axis labels
+	visu.rotate(90);
+	visu.draw_text((int)dispHeight/2, 10, yLabel.c_str(), lineColour, 0, 1, 30, 30);
+	visu.rotate(-90);
+	visu.draw_text((int)(dispWidth / 2 - (xLabel.size()/2)*10), dispHeight - 40, xLabel.c_str(), lineColour, 0, 1, 30, 30);
+
+	//Draw Axis Lines
+	visu.draw_line(xMinAxis, yMinAxis, xMinAxis, yMaxAxis, lineColour, 1);
+	visu.draw_line(xMinAxis, yMaxAxis, xMaxAxis, yMaxAxis, lineColour, 1);
+
+	//Convert Vector Values to the appropriate pix coordinates
+	for (int idx = 0; idx < x.size(); idx++) {
+
+		if (x[idx] > maxX)
+			maxX = x[idx] + 5.0f;
+
+		if (y[idx] > maxY)
+			maxY = y[idx] + 1.0f;
+
+		x[idx] = (x[idx] - minX)/ maxX;
+		x[idx] = x[idx] * (xMaxAxis - xMinAxis);
+		
+		y[idx] = (y[idx] - minY) / maxY;
+		y[idx] = (1-y[idx]) * (yMaxAxis - yMinAxis);
+
+		if (idx > 1) { // Draw line
+			visu.draw_line(x[idx - 1] + xMinAxis, y[idx - 1] + yMinAxis, x[idx] + xMinAxis, y[idx] + yMinAxis, lineColour, 1);
+		}
+	}
+
+	visu.display(disp);
+
+	//Alternatives, simpler with less control
+		//Draw each point http://www.cplusplus.com/forum/general/82584/
+		// locks after it draws https://stackoverflow.com/questions/39414084/plotting-a-vector-in-c-with-cimg
+}
+
 
 
 int main() {
@@ -331,7 +467,7 @@ int main() {
 
 	//Train with Gradient Descent -------------------
 	InitializeNeuron(imgRescaleValue, weights, b);
-	GradientDescent(TrainingSamples, TrainingSamplesClasses, weights, b, 10, 0.001);	
+	GradientDescent(TrainingSamples, TrainingSamplesClasses, weights, b, 10, 0.001, true);	
 
 	preds = ForwardPropagation(weights, b, TrainingSamples);
 	cost = CalculateCost(preds, TrainingSamplesClasses.cast <double>());
@@ -340,7 +476,7 @@ int main() {
 
 	//Train with Batch Gradient Descent -------------
 	InitializeNeuron(imgRescaleValue, weights, b);
-	BatchGradientDescent(TrainingSamples, TrainingSamplesClasses, weights, b, 32, 10, 0.001);
+	BatchGradientDescent(TrainingSamples, TrainingSamplesClasses, weights, b, 32, 10, 0.001, true);
 
 	preds = ForwardPropagation(weights, b, TrainingSamples);
 	cost = CalculateCost(preds, TrainingSamplesClasses.cast <double>());
@@ -353,7 +489,7 @@ int main() {
 
 
 
-	//Eigen Hello World
+	//Eigen Hello World---------------------------------
 	//MatrixXd m(2, 2);
 	//m(0, 0) = 3;
 	//m(1, 0) = 2.5;
@@ -361,7 +497,7 @@ int main() {
 	//m(1, 1) = m(1, 0) + m(0, 1);
 	//std::cout << m << std::endl;
 
-	////CImg Hello World
+	////CImg Hello World--------------------------------
 	//CImg<unsigned char> image("../Img/lena.jpg"), visu(500, 400, 1, 3, 0);
 	//const unsigned char red[] = { 255,0,0 }, green[] = { 0,255,0 }, blue[] = { 0,0,255 };
 	//CImgDisplay main_disp(image, "Click a point"), draw_disp(visu, "Intensity profile");
@@ -374,6 +510,20 @@ int main() {
 	//		visu.draw_graph(image.get_crop(0, y, 0, 2, image.width() - 1, y, 0, 2), blue, 1, 1, 0, 255, 0).display(draw_disp);
 	//	}
 	//}
+
+	//Draw Plot Hello World------------------------------	
+	//CImgDisplay main_disp(500, 400, "Cost Plot"); // display it
+
+	//Eigen::VectorXd xVals(6);
+	//xVals << 1, 2, 3, 4, 5, 6;
+	//Eigen::VectorXd yVals(6);
+	//yVals << 4, 2, 1, 0.5, 0.25, 0.125;
+	//std::vector<double> xVec(xVals.data(), xVals.data() + xVals.size());
+	//std::vector<double> yVec(yVals.data(), yVals.data() + yVals.size());
+
+	//drawPlot(main_disp, xVals, yVals, 0.0f, 15.0f, 0.0f, 1.0f, "Iterations", "Cost");
+
+
 
 	return 0;
 }
