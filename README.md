@@ -32,5 +32,7 @@ Note: CImg (http://cimg.eu/) uses external libs to process the images. I install
 ## Step 6) 
 - Visualise Gradient Descent Steps using CImg
 
-## Step 7) (TODO)
-- Get Accuracy from Dev Set
+## Step 7)
+- Predict output class
+- Get Accuracy on train and dev sets
+- Save and Load Eigen Matrices

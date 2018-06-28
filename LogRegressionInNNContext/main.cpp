@@ -1,5 +1,6 @@
 #include <Windows.h> 
 #include <iostream>
+#include <fstream> 
 
 #include <vector>
 #include <string>
@@ -220,11 +221,11 @@ void ShuffleMatrixCols(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::Matr
 	std::random_shuffle(perm.indices().data(), perm.indices().data() + perm.indices().size());
 	X_perm = X * perm; // permute columns
 	X_Classes_Perm = X_Classes * perm; // permute columns
-	//Eigen::MatrixXi x2_perm2 = perm * x123; // permute rows
-	
+									   //Eigen::MatrixXi x2_perm2 = perm * x123; // permute rows
+
 }
 
-void GradientDescent(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::MatrixXd &weights, Eigen::VectorXd &b, int numEpochs = 25, double learningRate = 0.001, bool plotCost=false) {
+void GradientDescent(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::MatrixXd &weights, Eigen::VectorXd &b, int numEpochs = 25, double learningRate = 0.001, bool plotCost = false) {
 
 	CImgDisplay main_disp;
 	std::vector<double> x;
@@ -233,17 +234,17 @@ void GradientDescent(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::Matrix
 		main_disp = CImgDisplay(500, 400, "Cost Plot"); // display it
 
 
-	//Gradient descent
+														//Gradient descent
 	for (int itIdx = 0; itIdx < numEpochs; itIdx++) {
 
 		Eigen::MatrixXd preds = ForwardPropagation(weights, b, X);
 
 		double cost = CalculateCost(preds, X_Classes.cast <double>());
-		
+
 		if (plotCost) {
 			x.push_back(itIdx);
 			y.push_back(cost);
-			drawPlot(main_disp, x, y, 
+			drawPlot(main_disp, x, y,
 				0.0f, 15.0f, 0.0f, 1.0f,
 				"Iterations", "Cost");
 		}
@@ -262,7 +263,7 @@ void GradientDescent(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::Matrix
 }
 
 void BatchGradientDescent(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::MatrixXd &weights, Eigen::VectorXd &b, int batchSize = 32, int numEpochs = 25, double learningRate = 0.001, bool plotCost = false) {
-	
+
 	CImgDisplay main_disp;
 	std::vector<double> x;
 	std::vector<double> y;
@@ -289,7 +290,7 @@ void BatchGradientDescent(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::M
 			Eigen::MatrixXd preds = ForwardPropagation(weights, b, batch);
 
 			double cost = CalculateCost(preds, batchClasses.cast <double>());
-			
+
 			if (plotCost) {
 				x.push_back(counterPlot);
 				y.push_back(cost);
@@ -346,13 +347,13 @@ void BatchGradientDescent(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::M
 // - Step 5 -
 // Visualise Cost after each Gradient Descent Step
 //////////////////////////////////////////////////////
-void drawPlot(CImgDisplay& disp, std::vector<double> x, std::vector<double> y, 
+void drawPlot(CImgDisplay& disp, std::vector<double> x, std::vector<double> y,
 	double minX = 0.0f, double maxX = 15.0f, double minY = 0.0f, double maxY = 1.0f,
-	std::string xLabel = "xAxis", std::string yLabel = "yAxis"){
-	
+	std::string xLabel = "xAxis", std::string yLabel = "yAxis") {
+
 	const unsigned char lineColour[] = { 0,0,0 };// i.e. black
 	int bgFillColour = 255;// i.e. white
-	
+
 	if (x.size() != y.size()) {
 		std::cout << "Both vectors need to have the same size. \n Will not draw anything \n";
 	}
@@ -361,7 +362,7 @@ void drawPlot(CImgDisplay& disp, std::vector<double> x, std::vector<double> y,
 	int dispHeight = disp.height();
 
 	CImg<unsigned char>  visu(dispWidth, dispHeight, 1, 3, 1);
-	
+
 	//Plot Drawing limits, i.e. what is drawn inside the axis lines
 	int xMinAxis = 50;
 	int yMinAxis = 10;
@@ -389,9 +390,9 @@ void drawPlot(CImgDisplay& disp, std::vector<double> x, std::vector<double> y,
 
 	//Draw Axis labels
 	visu.rotate(90);
-	visu.draw_text((int)dispHeight/2, 10, yLabel.c_str(), lineColour, 0, 1, 30, 30);
+	visu.draw_text((int)dispHeight / 2, 10, yLabel.c_str(), lineColour, 0, 1, 30, 30);
 	visu.rotate(-90);
-	visu.draw_text((int)(dispWidth / 2 - (xLabel.size()/2)*10), dispHeight - 40, xLabel.c_str(), lineColour, 0, 1, 30, 30);
+	visu.draw_text((int)(dispWidth / 2 - (xLabel.size() / 2) * 10), dispHeight - 40, xLabel.c_str(), lineColour, 0, 1, 30, 30);
 
 	//Draw Axis Lines
 	visu.draw_line(xMinAxis, yMinAxis, xMinAxis, yMaxAxis, lineColour, 1);
@@ -406,11 +407,11 @@ void drawPlot(CImgDisplay& disp, std::vector<double> x, std::vector<double> y,
 		if (y[idx] > maxY)
 			maxY = y[idx] + 1.0f;
 
-		x[idx] = (x[idx] - minX)/ maxX;
+		x[idx] = (x[idx] - minX) / maxX;
 		x[idx] = x[idx] * (xMaxAxis - xMinAxis);
-		
+
 		y[idx] = (y[idx] - minY) / maxY;
-		y[idx] = (1-y[idx]) * (yMaxAxis - yMinAxis);
+		y[idx] = (1 - y[idx]) * (yMaxAxis - yMinAxis);
 
 		if (idx > 1) { // Draw line
 			visu.draw_line(x[idx - 1] + xMinAxis, y[idx - 1] + yMinAxis, x[idx] + xMinAxis, y[idx] + yMinAxis, lineColour, 1);
@@ -420,11 +421,79 @@ void drawPlot(CImgDisplay& disp, std::vector<double> x, std::vector<double> y,
 	visu.display(disp);
 
 	//Alternatives, simpler with less control
-		//Draw each point http://www.cplusplus.com/forum/general/82584/
-		// locks after it draws https://stackoverflow.com/questions/39414084/plotting-a-vector-in-c-with-cimg
+	//Draw each point http://www.cplusplus.com/forum/general/82584/
+	// locks after it draws https://stackoverflow.com/questions/39414084/plotting-a-vector-in-c-with-cimg
 }
 
+//////////////////////////////////////////////////////
+// - Step 6 -
+// Predict Results, Save and Load Data set and Matrices
+//////////////////////////////////////////////////////
 
+Eigen::MatrixXd Predict(Eigen::MatrixXd weights, Eigen::VectorXd b, Eigen::MatrixXd X) {
+
+	double threshold = 0.5f;
+
+	Eigen::MatrixXd preds = ForwardPropagation(weights, b, X);
+
+	preds = (preds.array() > threshold).select(1, preds);
+	preds = (preds.array() <= threshold).select(0, preds);
+
+	return preds;
+}
+
+double CalcError(Eigen::MatrixXd real_Y, Eigen::MatrixXd pred_Y) {
+
+	if (real_Y.cols() != pred_Y.cols()) {
+		std::cout << "Real Y and Pred Y need be same dimensions \n";
+		return -1.0f;
+	}
+
+	double error = (real_Y - pred_Y).cwiseAbs().sum();
+	error /= real_Y.cols();
+
+	return error;
+}
+
+template<typename T>
+void Serialise(Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>& m, std::string fileName = "matrix") {
+
+	std::fstream writeFile;
+	writeFile.open(fileName, std::ios::binary | std::ios::out);
+
+	if (writeFile.is_open())
+	{
+		int rows, cols;
+		rows = m.rows();
+		cols = m.cols();
+
+		writeFile.write((const char *)&(rows), sizeof(int));
+		writeFile.write((const char *)&(cols), sizeof(int));
+
+		writeFile.write((const char *)(m.data()), sizeof(T) * rows * cols);
+
+		writeFile.close();
+	}
+}
+
+template<typename T>
+void Deserialise(Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>& m, std::string fileName = "matrix.eigm") {
+	std::fstream readFile;
+	readFile.open(fileName, std::ios::binary | std::ios::in);
+	if (readFile.is_open())
+	{
+		int rows, cols;
+		readFile.read((char*)&rows, sizeof(int));
+		readFile.read((char*)&cols, sizeof(int));
+
+		m.resize(rows, cols);
+
+		readFile.read((char*)(m.data()), sizeof(T) * rows * cols);
+
+		readFile.close();
+
+	}
+}
 
 int main() {
 
@@ -434,6 +503,7 @@ int main() {
 	std::string devFolderNotDogs = "../Img/Dev/Not Dogs";
 	std::string testFolder = "../Img/Test";
 
+	bool loadDBFromFiles = false;
 	int imgRescaleValue = 64;
 
 	//Initialisation Load Dataset -------------------
@@ -441,13 +511,31 @@ int main() {
 	Eigen::MatrixXi TrainingSamplesClasses;
 	//Class 1 - Dogs
 	//Class 2 - Not Dogs
-	LoadSet(trainFolderDogs, trainFolderNotDogs, imgRescaleValue, TrainingSamples, TrainingSamplesClasses);
+	if (loadDBFromFiles) {
+		Deserialise(TrainingSamples, "../Cereal Database/TrainingSamples.eigm");
+		Deserialise(TrainingSamplesClasses, "../Cereal Database/TrainingSamplesClasses.eigm");
+	}
+	else {
+		LoadSet(trainFolderDogs, trainFolderNotDogs, imgRescaleValue, TrainingSamples, TrainingSamplesClasses);
+		//Save Eigen Mat Files
+		Serialise(TrainingSamples, "../Cereal Database/TrainingSamples.eigm");
+		Serialise(TrainingSamplesClasses, "../Cereal Database/TrainingSamplesClasses.eigm");
+	}
 
 	Eigen::MatrixXd DevSamples;
 	Eigen::MatrixXi DevSamplesClasses;
 	//Class 1 - Dogs
 	//Class 2 - Not Dogs
-	LoadSet(devFolderDogs, devFolderNotDogs, imgRescaleValue, DevSamples, DevSamplesClasses);
+	if (loadDBFromFiles) {
+		Deserialise(DevSamples, "../Cereal Database/DevSamples.eigm");
+		Deserialise(DevSamplesClasses, "../Cereal Database/DevSamplesClasses.eigm");
+	}
+	else {
+		LoadSet(devFolderDogs, devFolderNotDogs, imgRescaleValue, DevSamples, DevSamplesClasses);
+		//Save Eigen Mat Files
+		Serialise(DevSamples, "../Cereal Database/DevSamples.eigm");
+		Serialise(DevSamplesClasses, "../Cereal Database/DevSamplesClasses.eigm");
+	}
 
 	//Initialisation --------------------------------
 	Eigen::MatrixXd weights;
@@ -467,26 +555,35 @@ int main() {
 
 	//Train with Gradient Descent -------------------
 	InitializeNeuron(imgRescaleValue, weights, b);
-	GradientDescent(TrainingSamples, TrainingSamplesClasses, weights, b, 10, 0.001, true);	
+	GradientDescent(TrainingSamples, TrainingSamplesClasses, weights, b, 150, 0.001, true);
 
 	preds = ForwardPropagation(weights, b, TrainingSamples);
 	cost = CalculateCost(preds, TrainingSamplesClasses.cast <double>());
+
 	std::cout << "Final Training Cost: " << cost << "\n";
+	preds = Predict(weights, b, TrainingSamples);
+	std::cout << "Train set with Gradient Descent Accuracy: " << 100 - CalcError(TrainingSamplesClasses.cast <double>(), preds) * 100 << "\n";
+	preds = Predict(weights, b, DevSamples);
+	std::cout << "Dev set with Gradient Descent Accuracy: " << 100 - CalcError(DevSamplesClasses.cast <double>(), preds) * 100 << "\n";
+
 	std::cout << "-------------------------------------------------------\n";
 
 	//Train with Batch Gradient Descent -------------
-	InitializeNeuron(imgRescaleValue, weights, b);
-	BatchGradientDescent(TrainingSamples, TrainingSamplesClasses, weights, b, 32, 10, 0.001, true);
+	Eigen::MatrixXd weights_Batch;
+	Eigen::VectorXd b_Batch;
+	InitializeNeuron(imgRescaleValue, weights_Batch, b_Batch);
+	BatchGradientDescent(TrainingSamples, TrainingSamplesClasses, weights_Batch, b_Batch, 32, 150, 0.001, true);
 
-	preds = ForwardPropagation(weights, b, TrainingSamples);
+	preds = ForwardPropagation(weights_Batch, b_Batch, TrainingSamples);
 	cost = CalculateCost(preds, TrainingSamplesClasses.cast <double>());
+
 	std::cout << "Final Training Cost: " << cost << "\n";
+	preds = Predict(weights_Batch, b_Batch, TrainingSamples);
+	std::cout << "Train set with Batch Gradient Descent Accuracy: " << 100 - CalcError(TrainingSamplesClasses.cast <double>(), preds) * 100 << "\n";
+	preds = Predict(weights_Batch, b_Batch, DevSamples);
+	std::cout << "Dev set with Batch Gradient Descent Accuracy: " << 100 - CalcError(DevSamplesClasses.cast <double>(), preds) * 100 << "\n";
+
 	std::cout << "-------------------------------------------------------\n";
-
-
-
-
-
 
 
 	//Eigen Hello World---------------------------------
@@ -522,8 +619,6 @@ int main() {
 	//std::vector<double> yVec(yVals.data(), yVals.data() + yVals.size());
 
 	//drawPlot(main_disp, xVals, yVals, 0.0f, 15.0f, 0.0f, 1.0f, "Iterations", "Cost");
-
-
 
 	return 0;
 }
