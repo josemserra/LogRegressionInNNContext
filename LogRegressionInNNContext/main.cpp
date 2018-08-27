@@ -284,8 +284,8 @@ void BatchGradientDescent(Eigen::MatrixXd X, Eigen::MatrixXi X_Classes, Eigen::M
 		int processedBatches = 0;
 		while ((processedBatches + batchSize) < numTrainingSamples) {
 
-			Eigen::MatrixXd batch = X.block(0, processedBatches, X.rows(), numTrainingSamples - processedBatches);
-			Eigen::MatrixXi batchClasses = X_Classes.block(0, processedBatches, 1, numTrainingSamples - processedBatches);
+			Eigen::MatrixXd batch = X.block(0, processedBatches, X.rows(), batchSize);
+			Eigen::MatrixXi batchClasses = X_Classes.block(0, processedBatches, 1, batchSize);
 
 			Eigen::MatrixXd preds = ForwardPropagation(weights, b, batch);
 
